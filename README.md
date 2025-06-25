@@ -383,33 +383,122 @@ trainer.train()
 ![image](https://github.com/user-attachments/assets/94f0ac83-5296-48fe-b9c9-78d371161a02)
 
 
-#### 결과
+## 결과
 
-##### Accuracy, Loss 그래프
-###### LSTM
+### Accuracy, Loss 그래프
+#### LSTM
 ![image](https://github.com/user-attachments/assets/001f92cf-3e75-426b-b94e-43295a0e0e87)
 Accuracy - LSTM
 ![image](https://github.com/user-attachments/assets/dcf198de-7612-4c10-bf9b-e56fa578204a)
 Loss - LSTM
 
-###### beomi/KcELECTRA-base-v2022
+#### beomi/KcELECTRA-base-v2022
 ![image](https://github.com/user-attachments/assets/315164c0-ccc0-4a75-bd15-de365c7ffc13)
 Accuracy - KcELECTRA
 ![image](https://github.com/user-attachments/assets/f27aebca-d113-4b79-8764-cf36cea34db0)
 Loss - KcELECTRA
 
-##### classification_report
+### classification_report
 
-###### LSTM
+#### LSTM
 ![image](https://github.com/user-attachments/assets/e15b0bad-943b-4851-a6c7-b603c959c7d1)
 classification_report - LSTM
 
-###### beomi/KcELECTRA-base-v2022
+#### beomi/KcELECTRA-base-v2022
 ![image](https://github.com/user-attachments/assets/20ced92a-38ef-435f-bafb-23f47f721665)
 classification_report - KcELECTRA
 
 Precision, Recall, F1-score 전체적으로 beomi/KcELECTRA-base-v2022 우수
 
+## beomi/KcELECTRA-base-v2022 하이퍼파라미터 조정
+### 하이퍼파라미터 조정으로 성능 개선 목표
 
+config - dropout 0.3 -> 0.4 조절
+```python
+config = ElectraConfig.from_pretrained(
+    model_name,
+    num_labels=3,
+    hidden_dropout_prob=0.4,               # ✅ hidden layer dropout 확률 조정
+    attention_probs_dropout_prob=0.4       # ✅ self-attention dropout 확률 조정
+)
+```
 
+클래스 별 가중치 조절 (이전 KcELECTRA 모델은 중립에 대한 성능이 전체적으로 낮음 -> 가중치 2배 부여)
+```python
+from torch.nn import CrossEntropyLoss
 
+# 클래스별 가중치: (예시) [부정:1.0, 중립:2.0, 긍정:1.0]
+class_weights = torch.tensor([1.0, 2.0, 1.0]).to(model_0624_5.device)
+
+# Custom Trainer 정의
+class WeightedLossTrainer(Trainer):
+    def compute_loss(self, model, inputs, return_outputs=False):
+        labels = inputs.get("labels")
+        outputs = model(**inputs)
+        logits = outputs.get("logits")
+
+        # GPU로 class weight 보내기
+        weight = class_weights.to(model.device)
+        loss_fct = torch.nn.CrossEntropyLoss(weight=weight)
+        loss = loss_fct(logits, labels)
+
+        return (loss, outputs) if return_outputs else loss
+```
+
+학습 인자 수정
+```python
+training_args = TrainingArguments(
+    output_dir="./best_model",
+    evaluation_strategy="steps",
+    eval_steps=500,                 # 250 -> 500 steps
+    save_strategy="steps",
+    save_steps=500,                
+    save_total_limit=2,             
+    load_best_model_at_end=True,
+    metric_for_best_model="macro_f1",
+    greater_is_better=True,
+    
+    num_train_epochs=6,
+    per_device_train_batch_size=64,  # 배치사이즈 32 -> 64 (빠른 학습)
+    per_device_eval_batch_size=64,
+    
+    learning_rate=3e-5,              # 1e-5 -> 3e-5 (모델이 더 빠르게 파라미터를 업데이트)
+    weight_decay=0.01,
+    warmup_steps=500,                # 1000 -> 500 (예열 구간 감소 : 학습 초기에 학습률(Learning Rate)을 천천히 증가)
+    logging_dir="./logs",
+    logging_strategy="steps",
+    logging_steps=100,              
+    
+    fp16=True,                      # GPU 자원을 덜 사용하고 학습 속도를 높이는 기법
+    report_to=[],                   
+    seed=42
+)
+```
+
+학습 객체 수정
+```python
+from transformers import EarlyStoppingCallback
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=train_dataset,
+    eval_dataset=test_dataset,            
+    tokenizer=tokenizer,
+    data_collator=DataCollatorWithPadding(tokenizer),  
+    compute_metrics=compute_metrics,
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=3)] # 기존 4 -> 3 (더 빠른 멈춤, 과적합 방지)
+)
+```
+
+학습 실행
+```python
+trainer.train()
+```
+![image](https://github.com/user-attachments/assets/d87a3bf5-4db6-439d-ada3-33292cadf1bc)
+
+### beomi/KcELECTRA-base-v2022 Original vs New 성능 비교
+#### Accuracy, Loss 그래프
+![image](https://github.com/user-attachments/assets/315164c0-ccc0-4a75-bd15-de365c7ffc13)
+Accuracy - KcELECTRA
+![image](https://github.com/user-attachments/assets/f27aebca-d113-4b79-8764-cf36cea34db0)
+Loss - KcELECTRA
