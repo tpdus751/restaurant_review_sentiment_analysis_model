@@ -499,6 +499,21 @@ trainer.train()
 ### beomi/KcELECTRA-base-v2022 Original vs New 성능 비교
 #### Accuracy, Loss 그래프
 ![image](https://github.com/user-attachments/assets/315164c0-ccc0-4a75-bd15-de365c7ffc13)
-Accuracy - KcELECTRA
+Accuracy - KcELECTRA-Original
 ![image](https://github.com/user-attachments/assets/f27aebca-d113-4b79-8764-cf36cea34db0)
-Loss - KcELECTRA
+Loss - KcELECTRA-Original
+
+![image](https://github.com/user-attachments/assets/304ef175-54bc-4982-b241-984d188c6c53)
+Accuracy - KcELECTRA-New
+![image](https://github.com/user-attachments/assets/b571e926-8469-4121-a256-d7680ccc1e4c)
+Loss - KcELECTRA-New
+
+#### classification_report
+![image](https://github.com/user-attachments/assets/20ced92a-38ef-435f-bafb-23f47f721665)
+classification_report - KcELECTRA-Original
+![image](https://github.com/user-attachments/assets/594b0109-891a-4209-8162-bb3409ed46ae)
+classification_report - KcELECTRA-New
+
+
+
+
