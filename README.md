@@ -2,7 +2,7 @@
 음식점 리뷰 감성분석 모델 구축, LSTM, beomi/KcELECTRA-base-v2022 비교
 
 ## 감성분석 모델 학습 계기
-
+[성남시 음식점 리뷰 감성에 따른 분포 시각화 및 감성 분석을 활용한 장점, 개선점 도출 웹 서비스](https://github.com/tpdus751/seongnam-restaurant-sentiment-analysis) 및 [내돈내픽 서비스](https://github.com/tpdus751/naedonnaepick_frontend)에 활용할 감성분석 모델 필요
 
 ## 데이터 준비
 
