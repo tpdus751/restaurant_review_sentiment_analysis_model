@@ -72,10 +72,11 @@ def classify_batch_lmstudio(reviews):
         return [None] * len(reviews)
 ```
 
-## 모델 비교 (LSTM vs beomi/KcELECTRA-base-v2022)
+## 모델 학습 (LSTM, beomi/KcELECTRA-base-v2022)
 
 ### LSTM
 #### 코드
+라이브러리
 ```python
 import pandas as pd
 import numpy as np
@@ -91,18 +92,18 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Embedding, LSTM, Dense, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
 ```
-라이브러리 설치
 
+csv 불러오기
 ```python
 df = pd.read_csv('___.csv')  # 'text', 'label' 컬럼 포함
 ```
-csv 불러오기
 
+결측치 제거
 ```python
 df = df.dropna()
 ```
-결측치 제거
 
+전처리 및 text, label 분리
 ```python
 # 전처리
 def clean_text(text):
@@ -114,14 +115,14 @@ def clean_text(text):
 X = df['content'].astype(str).apply(clean_text)
 y = df['label']
 ```
-전처리 및 text, label 분리
 
+라벨 분포 확인
 ```python
 print("라벨 분포:\n", y.value_counts())
 ```
 ![image](https://github.com/user-attachments/assets/1b8d36a7-482b-403f-a68a-646811afaff8)
-라벨 분포 확인
 
+라벨 수가 적은 부정을 기준으로 갯수 통일
 ```python
 # 라벨 기준으로 데이터프레임 나누기
 df_0 = df[df['label'] == 0]
@@ -135,15 +136,15 @@ df_balanced = pd.concat([df_0, df_1, df_2]).sample(frac=1, random_state=42).rese
 print("균형 맞춘 라벨 분포:\n", df_balanced['label'].value_counts())
 ```
 ![image](https://github.com/user-attachments/assets/cbc565fc-69bb-4076-b14d-d7fb87eb08d3)
-라벨 수가 적은 부정을 기준으로 갯수 통일
 
+학습/테스트 분리
 ```python
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
 ```
-학습/테스트 분리
 
+토크나이저 로드 및 입력 데이터 정수 인코딩
 ```python
 tokenizer = Tokenizer(num_words=10000, oov_token="<OOV>")
 tokenizer.fit_on_texts(X_train)
@@ -151,6 +152,248 @@ tokenizer.fit_on_texts(X_train)
 X_train_seq = tokenizer.texts_to_sequences(X_train)
 X_test_seq = tokenizer.texts_to_sequences(X_test)
 ```
-토크나이저 로드 및 입력 데이터 정수 인코딩
+
+패딩 (모델 학습 시 입력갯수 통일)
+```python
+max_len = 80
+X_train_pad = pad_sequences(X_train_seq, maxlen=max_len, padding='post')
+X_test_pad = pad_sequences(X_test_seq, maxlen=max_len, padding='post')
+```
+
+라벨 원핫 인코딩
+```python
+num_classes = len(y.unique())  # 예: 3 (부정/중립/긍정)
+y_train_cat = to_categorical(y_train, num_classes=num_classes)
+y_test_cat = to_categorical(y_test, num_classes=num_classes)
+```
+
+모델 정의
+```python
+model = Sequential([
+    Embedding(input_dim=10000, output_dim=128, input_length=max_len),
+    LSTM(64, return_sequences=False),
+    Dropout(0.3),
+    Dense(32, activation='relu'),
+    Dropout(0.4),
+    Dense(num_classes, activation='softmax')
+])
+```
+
+모델 컴파일 (optimizer, loss, metrics)
+```python
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+```
+
+얼리스타핑(val_loss 기준 Epoch5 만큼 개선안되면 멈춤)
+```python
+early_stop = EarlyStopping(
+    monitor='val_loss',
+    patience=5,
+    restore_best_weights=True
+)
+```
+
+모델 학습
+```python
+history = model.fit(
+    X_train_pad, y_train_cat,
+    epochs=50,
+    batch_size=64,
+    validation_split=0.2,
+    callbacks=[early_stop]
+)
+```
+![image](https://github.com/user-attachments/assets/0a292528-8aa9-4025-a8ef-bda0d92764b6)
 
 ### KcELECTRA-base-v2022
+#### 코드
+라이브러리
+```python
+import pandas as pd
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, EarlyStoppingCallback, Trainer, DataCollatorWithPadding
+import numpy as np
+from datasets import Dataset
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments, DataCollatorWithPadding, ElectraConfig, ElectraForSequenceClassification
+from sklearn.metrics import classification_report, f1_score
+from sklearn.model_selection import train_test_split
+from datasets import Value
+import json
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix
+```
+
+csv 불러오기
+```python
+review_df = pd.read_csv('./___.csv')
+```
+
+데이터 전처리
+```python
+cleaned_review = []
+
+for review in review_df['content']:
+  if len(review) < 2:
+      review = np.nan
+  else:
+    if review == '':
+      review = np.nan
+
+    review = review.strip()
+
+    if '\n' in review:
+      review = review.replace('\n', '')
+
+  cleaned_review.append(review)
+
+review_df['content'] = cleaned_review
+
+# 결측치 확인
+print(review_df.isnull().sum())
+
+# 결측치 제거
+review_df = review_df.dropna()
+
+# 중복치 확인
+print("중복 행 개수:", review_df.duplicated().sum())
+
+# 중복치 제거
+review_df = review_df.drop_duplicates()
+```
+
+라벨 수가 적은 부정을 기준으로 갯수 통일
+```python
+sample_size = review_df['label'].value_counts().min()
+balanced_df = review_df.groupby('label').sample(n=sample_size, random_state=42)
+balanced_df.groupby('label').size().reset_index(name='count')
+```
+![image](https://github.com/user-attachments/assets/efb68a82-c233-441b-bbd2-902f7bfc2c2c)
+
+train, test 데이터셋 분리
+```python
+df = balanced_df[['content', 'label']].copy()
+df.columns = ['text', 'label']  # HuggingFace 형식에 맞게 컬럼명 변경
+
+# 2. train/test 분리 (stratify)
+train_df, test_df = train_test_split(df, test_size=0.2, stratify=df['label'], random_state=42)
+train_dataset = Dataset.from_pandas(train_df.reset_index(drop=True))
+test_dataset = Dataset.from_pandas(test_df.reset_index(drop=True))
+```
+
+토크나이저 로드
+```python
+model_name = "beomi/KcELECTRA-base"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+```
+
+패딩 
+```python
+def preprocess(example):
+    return tokenizer(example['text'], truncation=True, padding='max_length', max_length=35)
+
+train_dataset = train_dataset.map(preprocess, batched=True)
+test_dataset = test_dataset.map(preprocess, batched=True)
+```
+
+라벨 타입 정수형으로 지정
+```python
+train_dataset = train_dataset.cast_column("label", Value("int64"))
+test_dataset = test_dataset.cast_column("label", Value("int64"))
+```
+
+config 설정 (드랍아웃 기본값 0.1 -> 0.3)
+```python
+config = ElectraConfig.from_pretrained(
+    model_name,
+    num_labels=3,
+    hidden_dropout_prob=0.3,               # ✅ hidden layer dropout 확률 조정
+    attention_probs_dropout_prob=0.3       # ✅ self-attention dropout 확률 조정
+)
+```
+
+모델 생성
+```python
+model = ElectraForSequenceClassification.from_pretrained(
+    model_name,
+    config=config
+)
+```
+
+평가지표 정의
+```python
+# 4. 평가지표 함수 정의
+def compute_metrics(pred):
+    labels = pred.label_ids
+    preds = np.argmax(pred.predictions, axis=1)
+    return {
+        "accuracy": (preds == labels).mean(),
+        "eval_f1_macro": f1_score(labels, preds, average="macro")
+    }
+```
+
+학습 인자 설정
+```python
+# 5. Trainer 학습 설정
+training_args = TrainingArguments(
+    output_dir="./results",
+    evaluation_strategy="steps",         
+    eval_steps=250,                      # 🔄 평가 주기 조정 : 250
+    save_strategy="steps",
+    save_steps=500,
+    save_total_limit=2,
+    load_best_model_at_end=True,
+    metric_for_best_model="eval_f1_macro",  # 🔧 'eval_' 붙여야 동작함
+    greater_is_better=True,
+    
+    num_train_epochs=6,                  # ✔️ 짧게. EarlyStopping도 있으니 overfitting 방지
+    per_device_train_batch_size=32,      
+    per_device_eval_batch_size=64,
+
+    learning_rate=1e-5,                  
+    weight_decay=0.01,
+
+    warmup_steps=1000,                    # ✔️ Warmup 적용 (예열 단계)
+    logging_dir="./logs",
+    logging_strategy="steps",
+    logging_steps=100,                   # ✔️ 자주 로깅하여 모니터링
+
+    report_to=[],                        # 🔕 tensorboard 끔
+    seed=42
+)
+```
+학습 객체 설정
+```python
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    train_dataset=train_dataset,
+    eval_dataset=test_dataset,
+    tokenizer=tokenizer,
+    data_collator=DataCollatorWithPadding(tokenizer),
+    compute_metrics=compute_metrics,
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=4)]  # ✔️ patience 줄여 빠른 정지 유도
+)
+```
+
+모델 학습
+```python
+trainer.train()
+```
+![image](https://github.com/user-attachments/assets/94f0ac83-5296-48fe-b9c9-78d371161a02)
+
+
+#### 결과
+
+##### Accuracy, Loss 그래프
+###### LSTM
+![image](https://github.com/user-attachments/assets/001f92cf-3e75-426b-b94e-43295a0e0e87)
+![image](https://github.com/user-attachments/assets/dcf198de-7612-4c10-bf9b-e56fa578204a)
+
+###### beomi/KcELECTRA-base-v2022
+
+
+##### 혼동행렬
+
+
+
