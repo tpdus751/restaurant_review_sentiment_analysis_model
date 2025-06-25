@@ -515,6 +515,9 @@ classification_report - KcELECTRA-Original
 ![image](https://github.com/user-attachments/assets/594b0109-891a-4209-8162-bb3409ed46ae)
 classification_report - KcELECTRA-New
 
-중립에 있어 
+중립 Recall, F1-score 증가
 
+## 결론
+KcELECTRA-base-v2022가 LSTM보다 높은 성능을 발휘
 
+적절한 파라미터를 찾는 과정은 모델 성능을 높일 수 있음 -> KcELECTRA-New 모델 선택
