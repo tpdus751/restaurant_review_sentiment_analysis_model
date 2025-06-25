@@ -5,4 +5,8 @@
 
 
 ## 데이터 준비
-[크롤링 과정](https://github.com/tpdus751/naver_map_restaurant_review_crawl_process)
+
+### 리뷰 데이터 크롤링
+[크롤링 과정](https://github.com/tpdus751/naver_map_restaurant_review_crawl_process) 
+
+### 리뷰 데이터 라벨링
