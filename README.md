@@ -402,11 +402,13 @@ Loss - KcELECTRA
 
 ###### LSTM
 ![image](https://github.com/user-attachments/assets/e15b0bad-943b-4851-a6c7-b603c959c7d1)
-LSTM - classification_report
+classification_report - LSTM
 
 ###### beomi/KcELECTRA-base-v2022
 ![image](https://github.com/user-attachments/assets/20ced92a-38ef-435f-bafb-23f47f721665)
-KcELECTRA - classification_report
+classification_report - KcELECTRA
+
+
 
 
 
