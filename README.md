@@ -509,9 +509,9 @@ Accuracy - KcELECTRA-New
 Loss - KcELECTRA-New
 
 #### classification_report
-![image](https://github.com/user-attachments/assets/20ced92a-38ef-435f-bafb-23f47f721665)
+![image](https://github.com/user-attachments/assets/20ced92a-38ef-435f-bafb-23f47f721665)</br>
 classification_report - KcELECTRA-Original
-![image](https://github.com/user-attachments/assets/594b0109-891a-4209-8162-bb3409ed46ae)
+![image](https://github.com/user-attachments/assets/594b0109-891a-4209-8162-bb3409ed46ae)</br>
 classification_report - KcELECTRA-New
 
 
