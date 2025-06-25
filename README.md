@@ -408,7 +408,7 @@ classification_report - LSTM
 ![image](https://github.com/user-attachments/assets/20ced92a-38ef-435f-bafb-23f47f721665)
 classification_report - KcELECTRA
 
-
+Precision, Recall, F1-score 전체적으로 beomi/KcELECTRA-base-v2022 우수
 
 
 
