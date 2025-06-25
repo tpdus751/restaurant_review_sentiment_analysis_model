@@ -515,6 +515,6 @@ classification_report - KcELECTRA-Original
 ![image](https://github.com/user-attachments/assets/594b0109-891a-4209-8162-bb3409ed46ae)
 classification_report - KcELECTRA-New
 
-
+중립에 있어 
 
 
