@@ -388,12 +388,26 @@ trainer.train()
 ##### Accuracy, Loss 그래프
 ###### LSTM
 ![image](https://github.com/user-attachments/assets/001f92cf-3e75-426b-b94e-43295a0e0e87)
+Accuracy - LSTM
 ![image](https://github.com/user-attachments/assets/dcf198de-7612-4c10-bf9b-e56fa578204a)
+Loss - LSTM
 
 ###### beomi/KcELECTRA-base-v2022
+![image](https://github.com/user-attachments/assets/315164c0-ccc0-4a75-bd15-de365c7ffc13)
+Accuracy - KcELECTRA
+![image](https://github.com/user-attachments/assets/f27aebca-d113-4b79-8764-cf36cea34db0)
+Loss - KcELECTRA
 
+##### classification_report
 
-##### 혼동행렬
+###### LSTM
+![image](https://github.com/user-attachments/assets/e15b0bad-943b-4851-a6c7-b603c959c7d1)
+LSTM - classification_report
+
+###### beomi/KcELECTRA-base-v2022
+![image](https://github.com/user-attachments/assets/20ced92a-38ef-435f-bafb-23f47f721665)
+KcELECTRA - classification_report
+
 
 
 
