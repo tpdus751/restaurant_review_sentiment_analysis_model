@@ -381,6 +381,7 @@ trainer = Trainer(
 trainer.train()
 ```
 ![image](https://github.com/user-attachments/assets/94f0ac83-5296-48fe-b9c9-78d371161a02)
+2500 Step에서 성능이 가장 좋은 것으로 확인
 
 
 ## 결과
